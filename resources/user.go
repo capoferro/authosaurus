@@ -3,18 +3,34 @@ package resources
 import (
 	"strconv"
 	"log"
+	"time"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
 )
 
+var db gorm.DB
+
+func init() {
+	var err error
+	db, err = gorm.Open("sqlite3", "./authosaurus.db")
+	if err != nil {
+		log.Printf("Error connecting to the database: " + err.Error())
+	}
+}
+
 type User struct {
-	Id string
-	Name string
+	Id int64 `sql:not null`
+	Name string `sql:not null`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
 type UserResource struct {
-	// TODO persistence
 	Users map[string]User
 }
 
@@ -58,11 +74,11 @@ func (u *UserResource) createUser(request *restful.Request, response *restful.Re
 		response.WriteErrorString(http.StatusBadRequest, "Error parsing user JSON: " + err.Error())
 		return
 	}
-	id := strconv.Itoa(len(u.Users) + 1)
-	log.Printf("Creating user #" + id + " (" + user.Name + ")")
-	user.Id = id
-	// TODO persistence
-	u.Users[user.Id] = *user
+	
+	db.Save(user)
+
+	log.Printf("Created user #" + strconv.Itoa(int(user.Id)) + " (" + user.Name + ")")
+	
 	response.WriteHeader(http.StatusCreated)
 	response.WriteEntity(user)
 }

@@ -44,7 +44,6 @@ func assertOnResponse(c *C, response *http.Response, f assertResponseFunc) {
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	errCheck(c, err)
-
 	f(response, string(body))
 }
 
@@ -65,10 +64,11 @@ func (s *AuthosaurusSuite) TestApiDocs_ServesSwaggerMetadata(c *C) {
 func (s *AuthosaurusSuite) TestUsers_Create(c *C) {
 	assertOnPost(c, "/users", `{"name": "Capo"}`, func(response *http.Response, body string) {
 		c.Assert(response.StatusCode, Equals, 201)
-		c.Assert(body, Equals, "{\n" +
-     "  \"Id\": \"1\",\n" +
-     "  \"Name\": \"Capo\"\n" +
-     " }")
+		c.Assert(matchable(body), Matches, ".*  \"Id\": \\d.*")
+		c.Assert(matchable(body), Matches, ".*  \"Name\": \"Capo\".*")
+		c.Assert(matchable(body), Matches, ".*  \"CreatedAt\": \".*\".*")
+		c.Assert(matchable(body), Matches, ".*  \"UpdatedAt\": \".*\".*")
+		c.Assert(matchable(body), Matches, ".*  \"DeletedAt\": \".*\".*")
 	})
 }
 
