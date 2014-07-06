@@ -24,19 +24,57 @@ func errCheck(c *C, err error) {
 }
 
 // Endpoint Tests
-target := "http://localhost:8080"
+const TARGET = "http://localhost:8080"
 
-func (s *AuthosaurusSuite) TestApiDocs_ServesSwaggerMetadata(c *C) {
-	response, err := http.Get(target + "/api-docs")
-	defer response.Body.Close()
+type assertResponseFunc func(*http.Response, string)
+
+func assertOnGet(c *C, path string, f assertResponseFunc) {
+	response, err := http.Get(TARGET + path)
 	errCheck(c, err)
-	body, err := ioutil.ReadAll(response.Body)
-	errCheck(c, err)
-	c.Assert(
-		// Matches will not match across newlines so split on newline and
-		// join with space.
-		strings.Replace(string(body), "\n", " ", -1),
-		Matches,
-		".*swaggerVersion.*")
+	assertOnResponse(c, response, f)
 }
 
+func assertOnPost(c *C, path string, postData string, f assertResponseFunc) {
+	response, err := http.Post(TARGET + path, "application/json", strings.NewReader(postData))
+	errCheck(c, err)
+	assertOnResponse(c, response, f)
+}
+
+func assertOnResponse(c *C, response *http.Response, f assertResponseFunc) {
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	errCheck(c, err)
+
+	f(response, string(body))
+}
+
+func matchable(str string) string {
+	// Matches will not match across newlines so replace \n with space
+	return strings.Replace(str, "\n", " ", -1)
+}
+
+func (s *AuthosaurusSuite) TestApiDocs_ServesSwaggerMetadata(c *C) {
+	assertOnGet(c, "/api-docs", func(response *http.Response, body string) {
+		c.Assert(response.StatusCode, Equals, 200)
+		c.Assert(matchable(body),
+			Matches,
+			".*swaggerVersion.*")
+	})
+}
+
+func (s *AuthosaurusSuite) TestUsers_Create(c *C) {
+	assertOnPost(c, "/users", `{"name": "Capo"}`, func(response *http.Response, body string) {
+		c.Assert(response.StatusCode, Equals, 201)
+		c.Assert(body, Equals, "{\n" +
+     "  \"Id\": \"1\",\n" +
+     "  \"Name\": \"Capo\"\n" +
+     " }")
+	})
+}
+
+func (s *AuthosaurusSuite) TestUsers_CreateError(c *C) {
+	assertOnPost(c, "/users", `bumblebee`, func(response *http.Response, body string) {
+		c.Assert(response.StatusCode, Equals, 400)
+		c.Assert(body, Equals, "Error parsing user JSON: invalid character 'b' looking for beginning of value")
+	})
+}
