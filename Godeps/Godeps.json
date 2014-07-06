@@ -1,0 +1,17 @@
+{
+    "ImportPath": "github.com/capoferro/authosaurus",
+    "GoVersion": "go1.3",
+    "Packages": [
+        "."
+        ],
+    "Deps": [
+        {
+            "ImportPath": "gopkg.in/check.v1",
+            "Comment": "Unit testing"
+        },
+        {
+            "ImportPath": "github.com/emicklei/go-restful",
+            "Comment": ""
+        }
+    ]
+}
