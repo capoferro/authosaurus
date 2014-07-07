@@ -22,8 +22,8 @@ func init() {
 }
 
 type User struct {
-	Id int64 `sql:not null`
-	Name string `sql:not null`
+	Id int64 `sql:"not null;unique"`
+	Name string `sql:"not null;unique"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -75,7 +75,11 @@ func (u *UserResource) createUser(request *restful.Request, response *restful.Re
 		return
 	}
 	
-	db.Save(user)
+	err = db.Save(user).Error
+	if err != nil {
+		response.WriteErrorString(http.StatusBadRequest, "Error creating User: " + err.Error())
+		return
+	}
 
 	log.Printf("Created user #" + strconv.Itoa(int(user.Id)) + " (" + user.Name + ")")
 	

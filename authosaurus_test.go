@@ -78,3 +78,11 @@ func (s *AuthosaurusSuite) TestUsers_CreateError(c *C) {
 		c.Assert(body, Equals, "Error parsing user JSON: invalid character 'b' looking for beginning of value")
 	})
 }
+
+func (s *AuthosaurusSuite) TestUsers_CreateDuplicateName(c *C) {
+	assertOnPost(c, "/users", `{"name": "DuplicateCapo"}`, func(response *http.Response, body string){})
+	assertOnPost(c, "/users", `{"name": "DuplicateCapo"}`, func(response *http.Response, body string) {
+		c.Assert(response.StatusCode, Equals, 400)
+		c.Assert(body, Equals, "Error creating User: UNIQUE constraint failed: users.name")
+})
+}
