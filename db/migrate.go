@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"log"
 
 	"github.com/capoferro/authosaurus/resources"
@@ -12,10 +13,14 @@ var db gorm.DB
 
 func main() {
 	var err error
-
-	dbPath := "./authosaurus.db"
-	log.Printf("Opening database: " + dbPath)
-	db, err = gorm.Open("sqlite3", dbPath)
+	var dbFilename string
+	if os.Getenv("TEST") == "true" {
+		dbFilename = "./authosaurus_test.db"
+	} else {
+		dbFilename = "./authosaurus.db"
+	}
+	log.Printf("Opening database: " + dbFilename)
+	db, err = gorm.Open("sqlite3", dbFilename)
 	if err != nil {
 		log.Printf("Error connecting to the database: " + err.Error())
 		log.Printf("No migrations performed.")

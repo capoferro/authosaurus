@@ -16,7 +16,6 @@ func main() {
 	domain := "localhost"
 	wsUrl := "http://" + domain + ":" + strconv.Itoa(port)
 	
-
 	wsContainer := restful.NewContainer()
 	u := resources.UserResource{map[string]resources.User{}}
 	u.Register(wsContainer)

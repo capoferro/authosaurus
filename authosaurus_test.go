@@ -2,11 +2,13 @@ package main_test
 
 import (
 	"testing"
-
 	"strings"
+	"log"
 	"io/ioutil"
 	"net/http"
-	
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
 	. "gopkg.in/check.v1"
 )
 
@@ -16,7 +18,9 @@ func Test(t *testing.T) { TestingT(t) }
 type AuthosaurusSuite struct{}
 
 var _ = Suite(&AuthosaurusSuite{})
-
+func (s *AuthosaurusSuite) SetUpTest(c *C) {
+	resetDb()
+}
 func errCheck(c *C, err error) {
 	if err != nil {
 		c.Fatal("Error: " + err.Error())
@@ -52,6 +56,20 @@ func matchable(str string) string {
 	return strings.Replace(str, "\n", " ", -1)
 }
 
+var db gorm.DB
+func resetDb() {
+	var err error
+	db, err = gorm.Open("sqlite3", "./authosaurus_test.db")
+	if err != nil {
+		log.Printf("Error connecting to the database: " + err.Error())
+	}
+
+	err = db.Exec("DELETE FROM users;").Error
+	if err != nil {
+		log.Printf("Error clearing users table: " + err.Error())
+	}
+}
+
 func (s *AuthosaurusSuite) TestApiDocs_ServesSwaggerMetadata(c *C) {
 	assertOnGet(c, "/api-docs", func(response *http.Response, body string) {
 		c.Assert(response.StatusCode, Equals, 200)
@@ -63,19 +81,19 @@ func (s *AuthosaurusSuite) TestApiDocs_ServesSwaggerMetadata(c *C) {
 
 func (s *AuthosaurusSuite) TestUsers_Create(c *C) {
 	assertOnPost(c, "/users", `{"name": "Capo"}`, func(response *http.Response, body string) {
-		c.Assert(response.StatusCode, Equals, 201)
 		c.Assert(matchable(body), Matches, ".*  \"Id\": \\d.*")
 		c.Assert(matchable(body), Matches, ".*  \"Name\": \"Capo\".*")
 		c.Assert(matchable(body), Matches, ".*  \"CreatedAt\": \".*\".*")
 		c.Assert(matchable(body), Matches, ".*  \"UpdatedAt\": \".*\".*")
 		c.Assert(matchable(body), Matches, ".*  \"DeletedAt\": \".*\".*")
+		c.Assert(response.StatusCode, Equals, 201)
 	})
 }
 
 func (s *AuthosaurusSuite) TestUsers_CreateError(c *C) {
 	assertOnPost(c, "/users", `bumblebee`, func(response *http.Response, body string) {
-		c.Assert(response.StatusCode, Equals, 400)
 		c.Assert(body, Equals, "Error parsing user JSON: invalid character 'b' looking for beginning of value")
+		c.Assert(response.StatusCode, Equals, 400)
 	})
 }
 

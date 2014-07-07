@@ -2,6 +2,7 @@ package resources
 
 import (
 	"strconv"
+	"os"
 	"log"
 	"time"
 	"net/http"
@@ -15,7 +16,15 @@ var db gorm.DB
 
 func init() {
 	var err error
-	db, err = gorm.Open("sqlite3", "./authosaurus.db")
+	var dbFilename string
+	if os.Getenv("TEST") == "true" {
+		log.Printf("::::: TEST MODE :::::")
+		dbFilename = "./authosaurus_test.db"
+	} else {
+		dbFilename = "./authosaurus.db"
+	}
+	log.Printf("Using " + dbFilename)
+	db, err = gorm.Open("sqlite3", dbFilename)
 	if err != nil {
 		log.Printf("Error connecting to the database: " + err.Error())
 	}
@@ -71,6 +80,7 @@ func (u *UserResource) createUser(request *restful.Request, response *restful.Re
 	user := &User{}
 	err := request.ReadEntity(user)
 	if err != nil {
+		response.AddHeader("Content-Type", "text/plain")
 		response.WriteErrorString(http.StatusBadRequest, "Error parsing user JSON: " + err.Error())
 		return
 	}
@@ -82,7 +92,7 @@ func (u *UserResource) createUser(request *restful.Request, response *restful.Re
 	}
 
 	log.Printf("Created user #" + strconv.Itoa(int(user.Id)) + " (" + user.Name + ")")
-	
+
 	response.WriteHeader(http.StatusCreated)
 	response.WriteEntity(user)
 }
